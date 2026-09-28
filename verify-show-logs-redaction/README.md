@@ -3,7 +3,8 @@
 Scaffolder template modeled after `generic-seed`: create project → EE → job
 template → launch → clean up.
 
-The playbook prints intentional **FAKE** secrets via `ansible.builtin.debug`.
+The playbook prints intentional **FAKE** secrets via `ansible.builtin.debug`,
+each line prefixed with `SHOW_LOGS_CHECK` so they are easy to find.
 
 ## Import
 
@@ -13,33 +14,31 @@ The playbook prints intentional **FAKE** secrets via `ansible.builtin.debug`.
 
 ### On `main` (without PR #687)
 
-Show Logs shows **scaffolder step** messages only, for example:
-
-- Begin/End creating project
-- Job launched with ID
-- Job completed with status: successful
-
-You will **not** see playbook `debug` msg lines such as
-`Hello from verify-show-logs-redaction` or `password=...` in Show Logs.
-That is expected: `main` uses `launchJobTemplateNoWait` + polling and does
-not append playbook stdout msgs into the task log.
+Show Logs shows **scaffolder step** messages only (`Create project`, `Job launched`,
+`Job completed`, …). You will **not** see `SHOW_LOGS_CHECK` playbook lines.
 
 ### On PR branch `fix/AAP-89098-show-logs-playbook-stdout`
 
-After `Job <id> completed with status: successful` in the **launch-job** step,
-you should also see playbook msgs, with secrets redacted:
+1. Checkout the PR branch and restart `yarn start`
+2. Re-import/refresh this template, then run it
+3. Open **Show Logs** → **launch-job**
+4. After `Job <id> completed with status: successful`, search for `SHOW_LOGS_CHECK`
 
-| Expected | Notes |
+Expected:
+
+| Log line | Notes |
 | --- | --- |
-| `Hello from verify-show-logs-redaction` | Safe text, unchanged |
-| `password=[REDACTED]` | password assignment |
-| `access_token=[REDACTED]` | access_token assignment |
-| `refresh_token=[REDACTED]` | refresh_token assignment |
-| JSON-like msg with `[REDACTED]` values | quoted sensitive keys |
-| `step ] completed` then `next` | msg array item containing `]` |
+| `SHOW_LOGS_CHECK start verify-show-logs-redaction` | marker |
+| `SHOW_LOGS_CHECK safe=Hello from verify-show-logs-redaction` | unchanged |
+| `SHOW_LOGS_CHECK password=[REDACTED]` | redacted |
+| `SHOW_LOGS_CHECK access_token=[REDACTED]` | redacted |
+| `SHOW_LOGS_CHECK refresh_token=[REDACTED]` | redacted |
+| `SHOW_LOGS_CHECK {"password":"[REDACTED]",...}` | redacted |
+| `SHOW_LOGS_CHECK step ] completed` / `SHOW_LOGS_CHECK next` | array msg |
+| `SHOW_LOGS_CHECK end verify-show-logs-redaction` | marker |
 
 You must **not** see `SuperSecret123`, `supersecret`, `abc123`, `atk`, or `rtk`
-in the portal Show Logs. Raw AAP job output may still contain the fake values.
+in portal Show Logs.
 
 ## Defaults
 
