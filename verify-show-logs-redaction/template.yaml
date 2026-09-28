@@ -5,29 +5,27 @@ metadata:
   name: verify-show-logs-redaction
   title: Verify Show Logs redaction
   description: >
-    Creates a short-lived AAP project and job template that prints intentional
-    FAKE secrets via ansible.builtin.debug, then launches the job so you can
-    confirm Show Logs redacts password/token values (AAP-89098).
+    Creates a short-lived AAP project and job template, launches a localhost
+    playbook that emits intentional FAKE secrets via ansible.builtin.debug,
+    then cleans up. Use with the AAP-89098 plugins build to confirm playbook
+    stdout is redacted in scaffolder Show Logs.
   namespace: default
   annotations:
     ansible.com/template-source: scm
   tags:
     - aap-operations
-    - verification
-    - show-logs
+    - intermediate
 
 spec:
-  owner: ansible-authors
+  owner: RedHat
   type: service
 
   parameters:
-    - title: AAP connection and resources
-      description: >
-        Select AAP resources used to create and launch a temporary job that
-        emits fake secrets into stdout for redaction verification.
+    - title: Project data
+      description: Provide project data
       required:
+        - token
         - organization
-        - jobInventory
         - scmUrl
         - playbook
       properties:
@@ -39,6 +37,14 @@ spec:
           ui:backstage:
             review:
               show: false
+        scmType:
+          title: Select source control option
+          type: string
+          description: Select the source control option for your Ansible project.
+          default: Github
+          enum:
+            - Github
+            - Gitlab
         organization:
           title: Organization
           description: Select organization
@@ -49,47 +55,54 @@ spec:
             name: Default
         jobInventory:
           title: Inventory
-          description: Select inventory (must include a reachable host or localhost)
+          description: Select inventory
           resource: inventories
           ui:field: AAPResourcePicker
           default:
             id: 1
             name: Default
+        credentials:
+          title: Credentials
+          description: Select SCM credential for Private repositories
+          resource: credentials
+          ui:field: AAPResourcePicker
         scmUrl:
           title: Source control URL
           type: string
-          description: >
-            Git repository that contains verify-show-logs-redaction/site.yml.
-            Defaults to this templates fork; change if you imported from another remote.
+          ui:help: 'Source control URL: gitSourceControlUrlHelp'
+          ui:options:
+            rows: 5
           default: https://github.com/Jeevansuresh1/ansible-rhdh-templates
         scmBranch:
           title: Source control branch/tag/commit
           type: string
+          ui:options:
+            rows: 5
           default: verify-show-logs-redaction-aap-89098
+          ui:help: 'Branch to checkout. In addition to branches, you can input tags, commit hashes, and arbitrary refs.'
         playbook:
-          title: Playbook path
+          title: Playbook
+          description: Playbook path in the source control repository
           type: string
+          ui:options:
+            rows: 5
           default: verify-show-logs-redaction/site.yml
-        eeImage:
-          title: Execution environment image
-          type: string
-          default: quay.io/ansible/awx-ee:latest
 
   steps:
     - id: create-project
       name: Create project
       action: rhaap:create-project
       input:
-        # Create Task passes the real OAuth token only via secrets.aapToken
         token: ${{ secrets.aapToken }}
         deleteIfExist: true
         values:
           projectName: 'Verify Show Logs Redaction Project'
-          projectDescription: 'Temporary project for AAP-89098 Show Logs redaction verification'
+          projectDescription: 'Verify Show Logs Redaction Project'
           organization: ${{ parameters.organization }}
           scmUrl: ${{ parameters.scmUrl }}
           scmBranch: ${{ parameters.scmBranch }}
           scmUpdateOnLaunch: true
+          credentials: ${{ parameters.credentials }}
 
     - id: create-ee
       name: Create execution environment
@@ -100,7 +113,7 @@ spec:
         values:
           environmentName: 'Verify Show Logs Redaction EE'
           organization: ${{ parameters.organization }}
-          image: ${{ parameters.eeImage }}
+          image: 'quay.io/ansible/awx-ee:latest'
           pull: always
 
     - id: create-template
@@ -111,9 +124,9 @@ spec:
         deleteIfExist: true
         values:
           templateName: 'Verify Show Logs Redaction'
-          templateDescription: 'Prints fake secrets to verify Show Logs redaction'
-          # AAP create-project/create-ee return Controller API shapes (name, org id).
-          # Rebuild portal-shaped objects expected by rhaap:create-job-template schema.
+          templateDescription: 'Verify Show Logs Redaction'
+          scmType: ${{ parameters.scmType }}
+          # Rebuild portal-shaped objects; AAP create outputs use Controller API shapes.
           project:
             id: ${{ steps['create-project'].output.project.id }}
             projectName: 'Verify Show Logs Redaction Project'
@@ -121,6 +134,7 @@ spec:
             scmUrl: ${{ parameters.scmUrl }}
             scmBranch: ${{ parameters.scmBranch }}
             scmUpdateOnLaunch: true
+            credentials: ${{ parameters.credentials }}
           organization: ${{ parameters.organization }}
           jobInventory: ${{ parameters.jobInventory }}
           playbook: ${{ parameters.playbook }}
@@ -128,8 +142,9 @@ spec:
             id: ${{ steps['create-ee'].output.executionEnvironment.id }}
             environmentName: 'Verify Show Logs Redaction EE'
             organization: ${{ parameters.organization }}
-            image: ${{ parameters.eeImage }}
+            image: 'quay.io/ansible/awx-ee:latest'
             pull: always
+          credentials: ${{ parameters.credentials }}
 
     - id: launch-job
       name: Launch job template
@@ -137,7 +152,6 @@ spec:
       input:
         token: ${{ secrets.aapToken }}
         values:
-          # launch schema expects the template name string, not the create output object
           template: 'Verify Show Logs Redaction'
 
     - id: clean-up
@@ -155,7 +169,7 @@ spec:
             id: ${{ steps['create-ee'].output.executionEnvironment.id }}
             environmentName: 'Verify Show Logs Redaction EE'
             organization: ${{ parameters.organization }}
-            image: ${{ parameters.eeImage }}
+            image: 'quay.io/ansible/awx-ee:latest'
             pull: always
           template:
             id: ${{ steps['create-template'].output.template.id }}
@@ -171,19 +185,9 @@ spec:
 
   output:
     text:
-      - title: Verify Show Logs redaction
+      - title: 'Verify Show Logs redaction executed successfully'
         content: |
           **Job ID:** `${{ steps['launch-job'].output.data.id }}`
-
-          Open this scaffolder task **Show Logs** and confirm you see:
-          - `Hello from verify-show-logs-redaction` (unchanged)
-          - `password=[REDACTED]`
-          - `access_token=[REDACTED]`
-          - `refresh_token=[REDACTED]`
-          - JSON-like fields with `[REDACTED]` values
-          - `step ] completed` and `next` (array msg with `]` inside an item)
-
-          You should **not** see literals such as `SuperSecret123` or `supersecret`.
     links:
       - title: View in RH AAP
         url: ${{ steps['launch-job'].output.data.url }}
