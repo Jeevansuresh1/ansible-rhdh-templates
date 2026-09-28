@@ -1,9 +1,10 @@
 ---
 # Intentional FAKE secrets only — used to verify Show Logs redaction (AAP-89098).
 # After launching via the companion scaffolder template, open the task Show Logs
-# and confirm values appear as [REDACTED], never as the literals below.
+# (launch-job step) and confirm values appear as [REDACTED], never as the literals below.
 - name: Verify Show Logs redaction
-  hosts: all
+  hosts: localhost
+  connection: local
   gather_facts: false
   tasks:
     - name: Safe baseline message

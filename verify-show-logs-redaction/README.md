@@ -14,7 +14,13 @@ picks up template changes (`secrets.aapToken` on `rhaap:*` steps).
 
 ## What to check after launch
 
-In the scaffolder task **Show Logs**, confirm:
+In the scaffolder task **Show Logs**, open the **`launch-job`** step.
+Right after `Job <id> completed with status: successful`, you should see info
+lines from playbook `debug` msgs (this is where redaction shows up):
+
+## Expected redacted lines
+
+In the scaffolder task **Show Logs** → **launch-job**, confirm:
 
 | Expected log line | Notes |
 | --- | --- |
