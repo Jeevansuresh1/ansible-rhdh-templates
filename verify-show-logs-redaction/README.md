@@ -29,5 +29,5 @@ You must **not** see `SuperSecret123`, `supersecret`, `abc123`, `atk`, or `rtk`.
 ## Defaults
 
 - SCM URL: `https://github.com/Jeevansuresh1/ansible-rhdh-templates`
-- Branch: `verify/show-logs-redaction-aap-89098`
+- Branch: `verify-show-logs-redaction-aap-89098`
 - Playbook: `verify-show-logs-redaction/site.yml`

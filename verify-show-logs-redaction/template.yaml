@@ -71,7 +71,7 @@ spec:
         scmBranch:
           title: Source control branch/tag/commit
           type: string
-          default: verify/show-logs-redaction-aap-89098
+          default: verify-show-logs-redaction-aap-89098
         playbook:
           title: Playbook path
           type: string
