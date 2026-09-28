@@ -26,7 +26,6 @@ spec:
         Select AAP resources used to create and launch a temporary job that
         emits fake secrets into stdout for redaction verification.
       required:
-        - token
         - organization
         - jobInventory
         - scmUrl
@@ -56,11 +55,6 @@ spec:
           default:
             id: 1
             name: Default
-        credentials:
-          title: Credentials
-          description: Optional SCM credential (needed only for private repositories)
-          resource: credentials
-          ui:field: AAPResourcePicker
         scmUrl:
           title: Source control URL
           type: string
@@ -86,7 +80,8 @@ spec:
       name: Create project
       action: rhaap:create-project
       input:
-        token: ${{ parameters.token }}
+        # Create Task passes the real OAuth token only via secrets.aapToken
+        token: ${{ secrets.aapToken }}
         deleteIfExist: true
         values:
           projectName: 'Verify Show Logs Redaction Project'
@@ -95,13 +90,12 @@ spec:
           scmUrl: ${{ parameters.scmUrl }}
           scmBranch: ${{ parameters.scmBranch }}
           scmUpdateOnLaunch: true
-          credentials: ${{ parameters.credentials }}
 
     - id: create-ee
       name: Create execution environment
       action: rhaap:create-execution-environment
       input:
-        token: ${{ parameters.token }}
+        token: ${{ secrets.aapToken }}
         deleteIfExist: true
         values:
           environmentName: 'Verify Show Logs Redaction EE'
@@ -113,7 +107,7 @@ spec:
       name: Create job template
       action: rhaap:create-job-template
       input:
-        token: ${{ parameters.token }}
+        token: ${{ secrets.aapToken }}
         deleteIfExist: true
         values:
           templateName: 'Verify Show Logs Redaction'
@@ -123,21 +117,21 @@ spec:
           jobInventory: ${{ parameters.jobInventory }}
           playbook: ${{ parameters.playbook }}
           executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}
-          credentials: ${{ parameters.credentials }}
 
     - id: launch-job
       name: Launch job template
       action: rhaap:launch-job-template
       input:
-        token: ${{ parameters.token }}
+        token: ${{ secrets.aapToken }}
         values:
-          template: ${{ steps['create-template'].output.template }}
+          # launch schema expects the template name string, not the create output object
+          template: 'Verify Show Logs Redaction'
 
     - id: clean-up
       name: Clean up
       action: rhaap:clean-up
       input:
-        token: ${{ parameters.token }}
+        token: ${{ secrets.aapToken }}
         values:
           project: ${{ steps['create-project'].output.project }}
           executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}

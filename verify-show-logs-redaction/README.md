@@ -5,11 +5,12 @@ logged in RHDH **Show Logs** redacts secrets.
 
 ## Import
 
-Register this location in the catalog (from your fork/branch URL), for example:
+Register this location in the catalog (slash-free branch name required):
 
-`https://github.com/Jeevansuresh1/ansible-rhdh-templates/blob/<branch>/verify-show-logs.yaml`
+`https://github.com/Jeevansuresh1/ansible-rhdh-templates/blob/verify-show-logs-redaction-aap-89098/verify-show-logs.yaml`
 
-Or import the raw Location file / template URL for your branch.
+After updating the branch, refresh/re-import the catalog entity so Create Task
+picks up template changes (`secrets.aapToken` on `rhaap:*` steps).
 
 ## What to check after launch
 
