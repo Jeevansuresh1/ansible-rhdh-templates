@@ -178,20 +178,9 @@ spec:
 
   output:
     text:
-      - title: 'Verify Show Logs redaction executed successfully'
+      - title: 'Job verify-show-logs-redaction executed successfully'
         content: |
           **Job ID:** `${{ steps['launch-job'].output.data.id }}`
-
-          Open **Show Logs** → **launch-job**. After `Job … completed with status: successful`,
-          search for `SHOW_LOGS_CHECK` (AAP-89098 plugins build only):
-          - `SHOW_LOGS_CHECK safe=Hello from verify-show-logs-redaction`
-          - `SHOW_LOGS_CHECK password=[REDACTED]`
-          - `SHOW_LOGS_CHECK access_token=[REDACTED]`
-          - `SHOW_LOGS_CHECK refresh_token=[REDACTED]`
-          - JSON keys redacted to `[REDACTED]`
-          - `SHOW_LOGS_CHECK step ] completed` and `SHOW_LOGS_CHECK next`
-
-          On plain `main` (without that PR), those `SHOW_LOGS_CHECK` playbook lines will not appear.
     links:
       - title: View in RH AAP
         url: ${{ steps['launch-job'].output.data.url }}
