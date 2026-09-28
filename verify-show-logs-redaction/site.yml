@@ -1,0 +1,33 @@
+---
+# Intentional FAKE secrets only — used to verify Show Logs redaction (AAP-89098).
+# After launching via the companion scaffolder template, open the task Show Logs
+# and confirm values appear as [REDACTED], never as the literals below.
+- name: Verify Show Logs redaction
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Safe baseline message
+      ansible.builtin.debug:
+        msg: Hello from verify-show-logs-redaction
+
+    - name: Password assignment style
+      ansible.builtin.debug:
+        msg: password=SuperSecret123
+
+    - name: Access token assignment style
+      ansible.builtin.debug:
+        msg: access_token=supersecret
+
+    - name: Refresh token assignment style
+      ansible.builtin.debug:
+        msg: refresh_token=supersecret
+
+    - name: Quoted JSON-like sensitive fields
+      ansible.builtin.debug:
+        msg: '{"password":"secret","token":"abc123","access_token":"atk","refresh_token":"rtk"}'
+
+    - name: Array msg with closing bracket inside an item
+      ansible.builtin.debug:
+        msg:
+          - step ] completed
+          - next

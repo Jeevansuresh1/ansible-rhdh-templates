@@ -1,0 +1,163 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+
+metadata:
+  name: verify-show-logs-redaction
+  title: Verify Show Logs redaction
+  description: >
+    Creates a short-lived AAP project and job template that prints intentional
+    FAKE secrets via ansible.builtin.debug, then launches the job so you can
+    confirm Show Logs redacts password/token values (AAP-89098).
+  namespace: default
+  annotations:
+    ansible.com/template-source: scm
+  tags:
+    - aap-operations
+    - verification
+    - show-logs
+
+spec:
+  owner: ansible-authors
+  type: service
+
+  parameters:
+    - title: AAP connection and resources
+      description: >
+        Select AAP resources used to create and launch a temporary job that
+        emits fake secrets into stdout for redaction verification.
+      required:
+        - token
+        - organization
+        - jobInventory
+        - scmUrl
+        - playbook
+      properties:
+        token:
+          title: Token
+          type: string
+          description: Oauth2 token
+          ui:field: AAPTokenField
+          ui:backstage:
+            review:
+              show: false
+        organization:
+          title: Organization
+          description: Select organization
+          resource: organizations
+          ui:field: AAPResourcePicker
+          default:
+            id: 1
+            name: Default
+        jobInventory:
+          title: Inventory
+          description: Select inventory (must include a reachable host or localhost)
+          resource: inventories
+          ui:field: AAPResourcePicker
+          default:
+            id: 1
+            name: Default
+        credentials:
+          title: Credentials
+          description: Optional SCM credential (needed only for private repositories)
+          resource: credentials
+          ui:field: AAPResourcePicker
+        scmUrl:
+          title: Source control URL
+          type: string
+          description: >
+            Git repository that contains verify-show-logs-redaction/site.yml.
+            Defaults to this templates fork; change if you imported from another remote.
+          default: https://github.com/Jeevansuresh1/ansible-rhdh-templates
+        scmBranch:
+          title: Source control branch/tag/commit
+          type: string
+          default: verify/show-logs-redaction-aap-89098
+        playbook:
+          title: Playbook path
+          type: string
+          default: verify-show-logs-redaction/site.yml
+        eeImage:
+          title: Execution environment image
+          type: string
+          default: quay.io/ansible/awx-ee:latest
+
+  steps:
+    - id: create-project
+      name: Create project
+      action: rhaap:create-project
+      input:
+        token: ${{ parameters.token }}
+        deleteIfExist: true
+        values:
+          projectName: 'Verify Show Logs Redaction Project'
+          projectDescription: 'Temporary project for AAP-89098 Show Logs redaction verification'
+          organization: ${{ parameters.organization }}
+          scmUrl: ${{ parameters.scmUrl }}
+          scmBranch: ${{ parameters.scmBranch }}
+          scmUpdateOnLaunch: true
+          credentials: ${{ parameters.credentials }}
+
+    - id: create-ee
+      name: Create execution environment
+      action: rhaap:create-execution-environment
+      input:
+        token: ${{ parameters.token }}
+        deleteIfExist: true
+        values:
+          environmentName: 'Verify Show Logs Redaction EE'
+          organization: ${{ parameters.organization }}
+          image: ${{ parameters.eeImage }}
+          pull: always
+
+    - id: create-template
+      name: Create job template
+      action: rhaap:create-job-template
+      input:
+        token: ${{ parameters.token }}
+        deleteIfExist: true
+        values:
+          templateName: 'Verify Show Logs Redaction'
+          templateDescription: 'Prints fake secrets to verify Show Logs redaction'
+          project: ${{ steps['create-project'].output.project }}
+          organization: ${{ parameters.organization }}
+          jobInventory: ${{ parameters.jobInventory }}
+          playbook: ${{ parameters.playbook }}
+          executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}
+          credentials: ${{ parameters.credentials }}
+
+    - id: launch-job
+      name: Launch job template
+      action: rhaap:launch-job-template
+      input:
+        token: ${{ parameters.token }}
+        values:
+          template: ${{ steps['create-template'].output.template }}
+
+    - id: clean-up
+      name: Clean up
+      action: rhaap:clean-up
+      input:
+        token: ${{ parameters.token }}
+        values:
+          project: ${{ steps['create-project'].output.project }}
+          executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}
+          template: ${{ steps['create-template'].output.template }}
+
+  output:
+    text:
+      - title: Verify Show Logs redaction
+        content: |
+          **Job ID:** `${{ steps['launch-job'].output.data.id }}`
+
+          Open this scaffolder task **Show Logs** and confirm you see:
+          - `Hello from verify-show-logs-redaction` (unchanged)
+          - `password=[REDACTED]`
+          - `access_token=[REDACTED]`
+          - `refresh_token=[REDACTED]`
+          - JSON-like fields with `[REDACTED]` values
+          - `step ] completed` and `next` (array msg with `]` inside an item)
+
+          You should **not** see literals such as `SuperSecret123` or `supersecret`.
+    links:
+      - title: View in RH AAP
+        url: ${{ steps['launch-job'].output.data.url }}

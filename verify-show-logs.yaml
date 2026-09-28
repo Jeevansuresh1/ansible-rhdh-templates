@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: verify-show-logs-redaction
+  description: >
+    Import this location to register the AAP-89098 Show Logs redaction
+    verification template.
+spec:
+  targets:
+    - ./verify-show-logs-redaction/template.yaml
