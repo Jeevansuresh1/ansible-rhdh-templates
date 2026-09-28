@@ -23,9 +23,10 @@ spec:
   parameters:
     - title: Project data
       description: Provide project data
+      # Do not require token: Create Task sends it only via secrets.aapToken
       required:
-        - token
         - organization
+        - jobInventory
         - scmUrl
         - playbook
       properties:
@@ -61,11 +62,6 @@ spec:
           default:
             id: 1
             name: Default
-        credentials:
-          title: Credentials
-          description: Select SCM credential for Private repositories
-          resource: credentials
-          ui:field: AAPResourcePicker
         scmUrl:
           title: Source control URL
           type: string
@@ -102,7 +98,6 @@ spec:
           scmUrl: ${{ parameters.scmUrl }}
           scmBranch: ${{ parameters.scmBranch }}
           scmUpdateOnLaunch: true
-          credentials: ${{ parameters.credentials }}
 
     - id: create-ee
       name: Create execution environment
@@ -134,7 +129,6 @@ spec:
             scmUrl: ${{ parameters.scmUrl }}
             scmBranch: ${{ parameters.scmBranch }}
             scmUpdateOnLaunch: true
-            credentials: ${{ parameters.credentials }}
           organization: ${{ parameters.organization }}
           jobInventory: ${{ parameters.jobInventory }}
           playbook: ${{ parameters.playbook }}
@@ -144,7 +138,6 @@ spec:
             organization: ${{ parameters.organization }}
             image: 'quay.io/ansible/awx-ee:latest'
             pull: always
-          credentials: ${{ parameters.credentials }}
 
     - id: launch-job
       name: Launch job template
