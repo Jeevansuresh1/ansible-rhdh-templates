@@ -112,11 +112,24 @@ spec:
         values:
           templateName: 'Verify Show Logs Redaction'
           templateDescription: 'Prints fake secrets to verify Show Logs redaction'
-          project: ${{ steps['create-project'].output.project }}
+          # AAP create-project/create-ee return Controller API shapes (name, org id).
+          # Rebuild portal-shaped objects expected by rhaap:create-job-template schema.
+          project:
+            id: ${{ steps['create-project'].output.project.id }}
+            projectName: 'Verify Show Logs Redaction Project'
+            organization: ${{ parameters.organization }}
+            scmUrl: ${{ parameters.scmUrl }}
+            scmBranch: ${{ parameters.scmBranch }}
+            scmUpdateOnLaunch: true
           organization: ${{ parameters.organization }}
           jobInventory: ${{ parameters.jobInventory }}
           playbook: ${{ parameters.playbook }}
-          executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}
+          executionEnvironment:
+            id: ${{ steps['create-ee'].output.executionEnvironment.id }}
+            environmentName: 'Verify Show Logs Redaction EE'
+            organization: ${{ parameters.organization }}
+            image: ${{ parameters.eeImage }}
+            pull: always
 
     - id: launch-job
       name: Launch job template
@@ -133,9 +146,28 @@ spec:
       input:
         token: ${{ secrets.aapToken }}
         values:
-          project: ${{ steps['create-project'].output.project }}
-          executionEnvironment: ${{ steps['create-ee'].output.executionEnvironment }}
-          template: ${{ steps['create-template'].output.template }}
+          project:
+            id: ${{ steps['create-project'].output.project.id }}
+            projectName: 'Verify Show Logs Redaction Project'
+            organization: ${{ parameters.organization }}
+            scmUrl: ${{ parameters.scmUrl }}
+          executionEnvironment:
+            id: ${{ steps['create-ee'].output.executionEnvironment.id }}
+            environmentName: 'Verify Show Logs Redaction EE'
+            organization: ${{ parameters.organization }}
+            image: ${{ parameters.eeImage }}
+            pull: always
+          template:
+            id: ${{ steps['create-template'].output.template.id }}
+            templateName: 'Verify Show Logs Redaction'
+            organization: ${{ parameters.organization }}
+            jobInventory: ${{ parameters.jobInventory }}
+            playbook: ${{ parameters.playbook }}
+            project:
+              id: ${{ steps['create-project'].output.project.id }}
+              projectName: 'Verify Show Logs Redaction Project'
+              organization: ${{ parameters.organization }}
+              scmUrl: ${{ parameters.scmUrl }}
 
   output:
     text:
